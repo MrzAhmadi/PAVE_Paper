@@ -53,7 +53,7 @@
 
 \begin{document}
 
-\title{An Empirical Study on \\Automated Free Proxy Configuration Testing \\and Security Analysis from Public Subscription Feeds}
+\title{PAVE: An Automated Pipeline for Reachability and Dynamic Analysis of Public Proxy Feeds}
 
 \author{\IEEEauthorblockN{Reza Ahmadi}
 \IEEEauthorblockA{\textit{Department of Computer Science} \\
@@ -67,7 +67,7 @@ seyedmohammadreza.ahmadi@studenti.univr.it}}
 Modern internet users heavily rely on circumvention tools, yet free proxy configurations are frequently missing, unreachable, or affected by configuration staleness.
 While tools exist to test proxy configurations from public subscription feeds, evaluating their absolute and comparative reachability at scale remains unaddressed.
 This paper presents a large-scale empirical study investigating the viability, challenges, and architectural bottlenecks of automated free proxy configuration testing from public subscription feeds.
-We design and implement the Config Probe System (CPS), a containerized, resource-conscious dynamic analysis infrastructure used to orchestrate, test, and segment proxy configurations across a massive subscription dataset.
+We design and implement the Proxy Analysis and Verification Engine (PAVE), a containerized, resource-conscious dynamic analysis infrastructure used to orchestrate, test, and segment proxy configurations across a massive subscription dataset.
 Utilizing a multi-stage deduplication heuristic on public subscription repositories, we match and deduplicate proxy configurations collected from multiple Telegram channels and public aggregators.
 Our empirical evaluation exposes 874 reachable configurations across five active proxy protocols, out of 109,874 deduplicated configuration records.
 We benchmark five distinct proxy protocols (VLESS, VMess, Shadowsocks, Trojan, and Hysteria2) across 109,874 evaluation records.
@@ -91,8 +91,8 @@ While various specialized client tools exist to test proxy configurations from s
 Their absolute and comparative reachability remains unaddressed when deployed across a wide distribution of protocols.
 
 This paper bridges this gap through a large-scale empirical study investigating the boundaries, viability, and operational challenges of automated black-box proxy configuration testing.
-To execute this study under uniform testing constraints, we design and implement the Config Probe System (CPS).
-CPS serves as a containerized, resource-conscious dynamic analysis infrastructure used to orchestrate configuration fetching, test connectivity, and segment multi-protocol results across a massive target dataset.
+To execute this study under uniform testing constraints, we design and implement the Proxy Analysis and Verification Engine (PAVE).
+PAVE serves as a containerized, resource-conscious dynamic analysis infrastructure used to orchestrate configuration fetching, test connectivity, and segment multi-protocol results across a massive target dataset.
 
 \subsection{Research Objectives and Motivation}
 Prior studies demonstrate that evaluating individual proxy protocols or small configuration samples in isolation fails to capture the systemic limitations, noise factors, and structural omissions found in production environments~\cite{khanvpn2018,perino2019,proxytorrent2018,proxies_unmasked}.
@@ -164,14 +164,14 @@ Security researchers use proxy protocols to circumvent censorship mechanisms~\ci
 They route their traffic through intermediary servers to access restricted data exchanged between the client and unrestricted destinations.
 Censorship authorities in heavily filtered countries, such as Iran, deploy deep packet inspection and DNS~\cite{rfc1034} poisoning to intercept this communication~\cite{aryan2013iran}.
 They apply protocol whitelisting and SNI-based filtering~\cite{rfc6066} to restrict the data exchanged between the user and unrestricted destinations~\cite{irblock2025,aryapour2025}.
-The configprobe toolset provides a comprehensive suite of features for implementing this proxy testing architecture.
+The PAVE toolset provides a comprehensive suite of features for implementing this proxy testing architecture.
 It dynamically launches and terminates proxy client processes on the fly, enabling the testing system to measure connectivity seamlessly.
 Consequently, any data transferred over this tested connection becomes fully observable and measurable in terms of latency and exit-node identity.
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\columnwidth]{overview_availability.png}
-    \caption{CPS pipeline output overview: overall configuration availability (left) and exit-node type distribution among working configurations (right), across 109,874 tested records.}
+    \caption{PAVE pipeline output overview: overall configuration availability (left) and exit-node type distribution among working configurations (right), across 109,874 tested records.}
     \label{fig:cps_overview}
 \end{figure}
 
@@ -218,7 +218,7 @@ When dealing with large-scale datasets, it is almost impossible to handle them m
 Furthermore, the raw subscription data is not directly suitable for reachability testing, and some post-processing is required to make it noise-free and aligned with the base proxy servers.
 
 \section{System Architecture}
-We present now our Config Probe System (CPS).
+We present now our Proxy Analysis and Verification Engine (PAVE).
 One of the most important steps in running a testing experiment is having an automated system to organize tools and ensure they work together to generate test results.
 While testing proxy configurations is already possible, these methods are not feasible for large datasets.
 Therefore, a fully automated system capable of performing this procedure without supervision is required.
@@ -397,14 +397,14 @@ For better management of the configuration records and easier identification of 
 \subsection{Geo-IP Enrichment from Connectivity Results}
 Every tested configuration produces a live exit-node IP address upon successful connection.
 In fact, a connectivity result record is a CSV-formatted archive that the testing system uses to record all network activity during the proxy handshake or curl request.
-It acts as a detailed, chronological log of the conversation between the CPS client and a remote exit server.
+It acts as a detailed, chronological log of the conversation between the PAVE client and a remote exit server.
 The connectivity result contains all the details of the exchange, including exit IP address, latency in milliseconds, DNS~\cite{rfc1034} resolver IP, IPv6~\cite{rfc8200} exit address, and proxy detection flags.
 The most important data for creating a geo-enriched analysis record is the exit IP, allowing each configuration to be attributed to a country, city, ASN, and datacenter classification.
 Enriching connectivity results with geo-IP metadata is mandatory for us because the enriched record serves as a standard benchmark for formal proxy analysis, geographic distribution study, and security evaluation.
 
 \section{Experimental Settings}
 In this section, the tools used for testing and analysing proxy configurations are discussed.
-The main objective is to define the tools and compare them, and then to define the scoring and metrics system for evaluating the CPS system.
+The main objective is to define the tools and compare them, and then to define the scoring and metrics system for evaluating the PAVE system.
 
 \subsection{Protocol Testing Tools}
 Protocol testing tools are designed to automatically connect to a proxy server using a specific protocol and measure reachability and latency.
@@ -412,7 +412,7 @@ These tools use various subprocess managers and local SOCKS5 port bindings to in
 
 \subsubsection{Xray-Based Tester}
 Xray~\cite{xray_core} is a tool developed in Go~\cite{golang}.
-Although this tool is based on Go, it supports a robust command-line interface (CLI) integration and is highly practical for use with CPS, which is developed in Python.
+Although this tool is based on Go, it supports a robust command-line interface (CLI) integration and is highly practical for use with PAVE, which is developed in Python.
 This tool supports automated path parameterization for VLESS and VMess protocols, which is one of the most critical features for configuration testing.
 It allows the tool to dynamically parse configuration URIs to detect transport parameters (like WebSocket~\cite{rfc6455} or gRPC~\cite{grpc} paths and UUIDs) and instantiate them into a running proxy process.
 For instance, converting \texttt{vless://uuid@server:443?type=ws\&path=/api} into a running Xray process with the correct WebSocket transport.
@@ -421,7 +421,7 @@ This tool also supports TLS certificate pinning bypass, built-in timeout control
 
 \subsubsection{Hysteria2-Based Tester}
 Hysteria2~\cite{hysteria2_proto} is the most compatible tool with the Hysteria2 protocol in theory, and it is developed and designed to do specialized connection establishment from Hysteria2 configuration URIs to live SOCKS5~\cite{rfc1928} proxy tunnels.
-This Go-based tool has a straightforward CLI and is designed to be easily integrated into the CPS pipeline.
+This Go-based tool has a straightforward CLI and is designed to be easily integrated into the PAVE pipeline.
 All connections will be established using the QUIC~\cite{rfc9000}-based Hysteria2 transport, the most recent high-performance proxy transport.
 It supports sensitive data handling, which means that by using the \texttt{--config} command-line flag, it will parse the actual captured authentication tokens.
 Meanwhile, there is a bottleneck in this tool: unlike fully synchronous tools, this tool requires the orchestrator to poll for readiness before accepting SOCKS5 connections, and there is no callback or event notification system.
@@ -432,14 +432,14 @@ This tool is designed for automated black-box connectivity testing of multiple p
 It interacts with the proxy server solely through standard protocol handshakes, without requiring access to the server's source code.
 The only requirement is a valid proxy configuration URI of the protocol being tested.
 The platform offers multiple components and features to assist researchers, practitioners, and developers in implementing custom testing strategies.
-On top of this platform, the CPS implements a specification inference engine that takes proxy URIs as input and emits the corresponding connectivity results as output.
+On top of this platform, the PAVE implements a specification inference engine that takes proxy URIs as input and emits the corresponding connectivity results as output.
 Additionally, the same tool is capable of computing the connection attempt outcome for a configuration, possibly measuring the difference between nominal and actual behavior of the server.
 
 \subsection{Analysis and Evaluation Frameworks}
 Several analysis frameworks used in this project are discussed in this section, along with their features and capabilities.
 These tools are designed to compare two configuration evaluation records and identify differences in reachability rates, latency distributions, geographic concentrations, and security profiles.
 The main tools discussed are Pandas~\cite{pandas}, Scikit-learn~\cite{scikit_learn}, and PyTorch~\cite{pytorch}.
-These tools are integrated outside the CPS pipeline, as they are used for post-processing and analysis of the generated connectivity records.
+These tools are integrated outside the PAVE pipeline, as they are used for post-processing and analysis of the generated connectivity records.
 
 \begin{table}[t]
 \centering
@@ -476,23 +476,23 @@ Construct validity concerns whether the comparison metrics accurately reflect th
 The use of automated geo-IP enrichment tools like ip-api.com~\cite{ipapi} provides a standardized measure of exit-node characteristics, but these tools may differ in their classification of datacenter versus residential networks, potentially affecting the final evaluation scores.
 
 \section{Dataset and Ground Truth}
-In this section, how to prepare required datasets to run and evaluate CPS is discussed.
-Fundamentally, CPS requires a dataset of proxy configurations and after ending the pipeline of the test, it is required to compare generated results with the expected ground truth.
+In this section, how to prepare required datasets to run and evaluate PAVE is discussed.
+Fundamentally, PAVE requires a dataset of proxy configurations and after ending the pipeline of the test, it is required to compare generated results with the expected ground truth.
 
 \subsection{Ground Truth Definition}
-Evaluation of the CPS outputs demands preparing specific information to compare.
+Evaluation of the PAVE outputs demands preparing specific information to compare.
 Basically, for evaluation of the system, the shape of output records such as exit IP, latency, and protocol should be controlled.
 Every difference is meaningful within this comparison.
 Generally, comparison of two configuration records will find three types of configurations:
 \begin{itemize}
-    \item \textbf{Unreachable:} Configurations that CPS could not connect through.
+    \item \textbf{Unreachable:} Configurations that PAVE could not connect through.
     \item \textbf{Datacenter:} Configurations whose exit IP belongs to a known datacenter or hosting range.
     \item \textbf{Residential:} Common configurations present in tested records with residential exit nodes.
 \end{itemize}
 
 \subsection{Public Subscription Repositories}
-It is expected to run CPS first, then investigate for corresponding reachability results, but after many efforts in this project, the experiment demonstrates that random selection of candidate subscription feeds does not guarantee availability of reachable proxy endpoints.
-For this reason, before running the CPS, it is necessary to investigate target candidate subscription sources.
+It is expected to run PAVE first, then investigate for corresponding reachability results, but after many efforts in this project, the experiment demonstrates that random selection of candidate subscription feeds does not guarantee availability of reachable proxy endpoints.
+For this reason, before running the PAVE, it is necessary to investigate target candidate subscription sources.
 There are many official and unofficial sources that could be sources of proxy configuration ground truth~\cite{perino2019,proxytorrent2018}.
 Some public Telegram channels publish their official proxy configurations corresponding to their services, and there are also open-source communities that try to collect proxy configurations from official sources or manual capturing.
 
@@ -518,13 +518,13 @@ Each configuration URI is parsed by protocol type, and if the protocol is suppor
 At the end of this process, a dataset of test results is prepared, where each configuration URI corresponds to zero, one, or more successful connectivity records.
 
 \section{Results and Discussion}
-This section presents the results obtained from executing the CPS pipeline.
+This section presents the results obtained from executing the PAVE pipeline.
 The evaluation focuses on the reachability of the configurations, the protocol distribution of the results, and the performance metrics of the system.
 The results are analyzed using various comparative tools, specifically Pandas~\cite{pandas}, Scikit-learn~\cite{scikit_learn}, Matplotlib~\cite{matplotlib}, and PyTorch~\cite{pytorch}, to provide a comprehensive and multi-faceted assessment.
 
 \subsection{Discovered Reachable Configurations}
 The result of running the connectivity testing system on the collected subscription dataset produced \textbf{109,874} unique deduplicated configuration records, of which \textbf{874} were reachable at the end.
-After the downloaded configuration list occupied about \textbf{5 MB} on the host machine storage, a \textbf{30-second} test by CPS was run on all target configurations to determine which configurations are reachable by CPS, and \textbf{874} were confirmed at the end.
+After the downloaded configuration list occupied about \textbf{5 MB} on the host machine storage, a \textbf{30-second} test by PAVE was run on all target configurations to determine which configurations are reachable by PAVE, and \textbf{874} were confirmed at the end.
 By running \textbf{50} concurrent workers on the host machine simultaneously, the entire process took several hours to complete.
 
 \begin{figure}[htbp]
@@ -561,7 +561,7 @@ The above table shows the reachability rate, crash-free operation, and compatibi
 
 \subsection{Configuration Coverage Analysis}
 By analyzing in detail the results of connectivity records, there are several vital information points.
-Generally \textbf{109,874} records about the entire connectivity testing process are recorded by the CPS pipeline.
+Generally \textbf{109,874} records about the entire connectivity testing process are recorded by the PAVE pipeline.
 
 \begin{table}[t]
 \centering
@@ -711,9 +711,9 @@ Furthermore, this study shows that the analysis of the generated connectivity re
 
 \section{Conclusion and Future Work}
 At the end of this project, there are several key findings.
-Some of the most important findings are related to CPS implementation.
-The results of this project demonstrate that the implemented CPS for proxy configurations is a practical and effective approach for testing connectivity and generating reachability records.
-By considering many important aspects of the implementation, such as containerization, automation, and scalability, the CPS is able to handle a wide range of configurations and test their connectivity in a reliable manner.
+Some of the most important findings are related to PAVE implementation.
+The results of this project demonstrate that the implemented PAVE for proxy configurations is a practical and effective approach for testing connectivity and generating reachability records.
+By considering many important aspects of the implementation, such as containerization, automation, and scalability, the PAVE is able to handle a wide range of configurations and test their connectivity in a reliable manner.
 
 Another important finding is related to the robustness and performance of different proxy protocols.
 The results of the study show that there are significant differences in the behavior of different protocols, both in terms of their ability to successfully provide reachable configurations and in terms of the geographic distribution of their exit nodes.
@@ -726,16 +726,16 @@ In conclusion, this project provides a comprehensive and practical solution for 
 
 This project has focused on capturing proxy connectivity that uses the TCP~\cite{rfc793} and UDP~\cite{rfc768} protocols.
 Despite the fact that TCP and UDP are the most widely used transports for proxy protocols, there are still many proxy services that use other transport mechanisms, such as WebSocket~\cite{rfc6455} over CDN or GRPC~\cite{grpc} over HTTP/2.
-For future work, it would be interesting to extend the CPS to support capturing proxy connectivity that uses non-standard transport layers.
+For future work, it would be interesting to extend the PAVE to support capturing proxy connectivity that uses non-standard transport layers.
 Future work can explore lower layers of the network stack to capture proxy interactions, using tools such as pcap~\cite{libpcap} or tools based on eBPF~\cite{ebpf_io}.
 
-In this project, the UI exploration component of the CPS is based on a simple random testing strategy by the curl tool, which is a built-in tool in the Linux SDK.
+In this project, the UI exploration component of the PAVE is based on a simple random testing strategy by the curl tool, which is a built-in tool in the Linux SDK.
 For future work, it would be interesting to explore the use of AI-driven techniques for configuration exploration, such as reinforcement learning or evolutionary algorithms.
 These techniques can potentially learn more effective exploration strategies over time, and can adapt to the specific characteristics of different proxy server implementations.
 
-In this project, the CPS is primarily focused on dynamic analysis of proxy connectivity.
-At the end of the CPS results, it is observable that there are some configurations that CPS is not able to establish any proxy connectivity for, and it cannot cross their security barriers.
-For future work, it would be interesting to explore the integration of the CPS with static analysis tools to break the security barriers of configurations, and especially TLS certificate pinning bypass.
+In this project, the PAVE is primarily focused on dynamic analysis of proxy connectivity.
+At the end of the PAVE results, it is observable that there are some configurations that PAVE is not able to establish any proxy connectivity for, and it cannot cross their security barriers.
+For future work, it would be interesting to explore the integration of the PAVE with static analysis tools to break the security barriers of configurations, and especially TLS certificate pinning bypass.
 However, it is important to consider the ethical implications of such an approach, and to ensure that it is used in a responsible and legal manner.
 
 \bibliographystyle{IEEEtran}
