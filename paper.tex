@@ -69,8 +69,8 @@ While tools exist to test proxy configurations from public subscription feeds, e
 This paper presents a large-scale empirical study investigating the viability, challenges, and architectural bottlenecks of automated free proxy configuration testing from public subscription feeds.
 We design and implement the Proxy Analysis and Verification Engine (PAVE), a containerized, resource-conscious dynamic analysis infrastructure used to orchestrate, test, and segment proxy configurations across a massive subscription dataset.
 Utilizing a multi-stage deduplication heuristic on public subscription repositories, we match and deduplicate proxy configurations collected from multiple Telegram channels and public aggregators.
-Our empirical evaluation exposes 874 reachable configurations across five active proxy protocols, out of 109,874 deduplicated configuration records.
-We benchmark five distinct proxy protocols (VLESS, VMess, Shadowsocks, Trojan, and Hysteria2) across 109,874 evaluation records.
+Our empirical evaluation exposes 1,451 reachable configurations across five active proxy protocols, out of 115,042 deduplicated configuration records.
+We benchmark five distinct proxy protocols (VLESS, VMess, Shadowsocks, Trojan, and Hysteria2) across 115,042 evaluation records.
 The results quantify severe configuration availability scarcity and highlight systemic limitations in black-box proxy reachability, providing concrete insights into how hybrid static-dynamic analysis must evolve to mitigate configuration staleness.
 \end{abstract}
 
@@ -119,7 +119,7 @@ Furthermore, raw subscription data is inherently noisy, embedding duplicate conf
 Finally, reproducible comparison requires building a reliable pipeline to map public subscription feeds to verifiable, testable proxy endpoints.
 
 To address these challenges, we utilize a multi-stage deduplication heuristic on public subscription repositories to match and consolidate proxy configurations from Telegram channels and public aggregators.
-Our empirical evaluation exposes 874 reachable configurations across five active protocols, out of 109,874 deduplicated evaluation records.
+Our empirical evaluation exposes 1,451 reachable configurations across five active protocols, out of 115,042 deduplicated evaluation records.
 Ultimately, our results quantify severe configuration availability scarcity and highlight systemic limitations in black-box protocol reachability, providing concrete insights into how hybrid static-dynamic analysis must evolve to mitigate configuration staleness.
 
 \subsection{Contributions}
@@ -171,7 +171,7 @@ Consequently, any data transferred over this tested connection becomes fully obs
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\columnwidth]{overview_availability.png}
-    \caption{PAVE pipeline output overview: overall configuration availability (left) and exit-node type distribution among working configurations (right), across 109,874 tested records.}
+    \caption{PAVE pipeline output overview: overall configuration availability (left) and exit-node type distribution among working configurations (right), across 115,042 tested records.}
     \label{fig:cps_overview}
 \end{figure}
 
@@ -523,14 +523,14 @@ The evaluation focuses on the reachability of the configurations, the protocol d
 The results are analyzed using various comparative tools, specifically Pandas~\cite{pandas}, Scikit-learn~\cite{scikit_learn}, Matplotlib~\cite{matplotlib}, and PyTorch~\cite{pytorch}, to provide a comprehensive and multi-faceted assessment.
 
 \subsection{Discovered Reachable Configurations}
-The result of running the connectivity testing system on the collected subscription dataset produced \textbf{109,874} unique deduplicated configuration records, of which \textbf{874} were reachable at the end.
-After the downloaded configuration list occupied about \textbf{5 MB} on the host machine storage, a \textbf{30-second} test by PAVE was run on all target configurations to determine which configurations are reachable by PAVE, and \textbf{874} were confirmed at the end.
+The result of running the connectivity testing system on the collected subscription dataset produced \textbf{115,042} unique deduplicated configuration records, of which \textbf{1,451} were reachable at the end.
+After the downloaded configuration list occupied about \textbf{5 MB} on the host machine storage, a \textbf{30-second} test by PAVE was run on all target configurations to determine which configurations are reachable by PAVE, and \textbf{1,451} were confirmed at the end.
 By running \textbf{50} concurrent workers on the host machine simultaneously, the entire process took several hours to complete.
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\columnwidth]{protocol_breakdown.png}
-    \caption{Protocol breakdown: total configuration count vs.\ reachable count per protocol (left) and availability rate per protocol (right). Hysteria2 achieves the highest availability rate at 23.0\%.}
+    \caption{Protocol breakdown: total configuration count vs.\ reachable count per protocol (left) and availability rate per protocol (right). Hysteria2 achieves the highest meaningful availability rate at 8.65\%.}
     \label{fig:protocol_breakdown}
 \end{figure}
 
@@ -543,16 +543,16 @@ By running \textbf{50} concurrent workers on the host machine simultaneously, th
 \hline
 \textbf{Protocol} & \textbf{Total} & \textbf{Reachable} & \textbf{Rate} \\
 \hline
-\textbf{VLESS}      & 80,470 & 600  & 0.75\% \\
-\textbf{Trojan}     & 18,416 & 113  & 0.61\% \\
-\textbf{SS}         & 7,346  & 62   & 0.84\% \\
-\textbf{VMess}      & 3,478  & 64   & 1.84\% \\
-\textbf{Hysteria2}  & 152    & 35   & 23.0\% \\
-\textbf{SSR}        & 1      & 0    & 0.00\% \\
-\textbf{TUIC}       & 5      & 0    & 0.00\% \\
-\textbf{SOCKS}      & 6      & 0    & 0.00\% \\
+\textbf{VLESS}      & 82,932 & 930  & 1.12\% \\
+\textbf{Trojan}     & 19,973 & 274  & 1.37\% \\
+\textbf{SS}         & 7,726  & 166  & 2.15\% \\
+\textbf{VMess}      & 4,103  & 62   & 1.51\% \\
+\textbf{Hysteria2}  & 208    & 18   & 8.65\% \\
+\textbf{SSR}        & 82     & 0    & 0.00\% \\
+\textbf{TUIC}       & 12     & 0    & 0.00\% \\
+\textbf{SOCKS}      & 6      & 1    & 16.67\% \\
 \hline
-\textbf{Total}      & 109,874 & 874 & 0.80\% \\
+\textbf{Total}      & 115,042 & 1,451 & 1.26\% \\
 \hline
 \end{tabular}
 \end{table}
@@ -561,7 +561,7 @@ The above table shows the reachability rate, crash-free operation, and compatibi
 
 \subsection{Configuration Coverage Analysis}
 By analyzing in detail the results of connectivity records, there are several vital information points.
-Generally \textbf{109,874} records about the entire connectivity testing process are recorded by the PAVE pipeline.
+Generally \textbf{115,042} records about the entire connectivity testing process are recorded by the PAVE pipeline.
 
 \begin{table}[t]
 \centering
@@ -572,18 +572,18 @@ Generally \textbf{109,874} records about the entire connectivity testing process
 \hline
 \textbf{Failure Reason} & \textbf{Total Records} \\
 \hline
-Host unreachable             & 45,071 \\
-Timeout                      & 32,880 \\
-SSL handshake failed         & 16,018 \\
-xray failed to start         & 14,999 \\
-hysteria2 failed to start    &     15 \\
-curl error 60                &      6 \\
-curl error 18                &      5 \\
+Host unreachable             & 44,384 \\
+SSL handshake failed         & 29,220 \\
+Timeout                      & 20,516 \\
+xray failed to start         & 19,319 \\
+sing-box failed to start     &     74 \\
+hysteria2 failed to start    &     60 \\
+curl error 60                &      7 \\
+curl error 97                &      5 \\
 SOCKS proxy error            &      4 \\
-sing-box failed to start     &      1 \\
-curl error 97                &      1 \\
+curl error 18                &      2 \\
 \hline
-\textbf{Total}               & \textbf{109,000} \\
+\textbf{Total}               & \textbf{113,591} \\
 \hline
 \end{tabular}
 \end{table}
@@ -600,28 +600,28 @@ The sparsity of reachable records generated by different protocol testing tools 
 \begin{tabular}{|l|c|c|c|}
 \hline
 \textbf{Category} & \textbf{Count} & \textbf{Pct.} & \textbf{Med.\ Latency} \\ \hline
-Datacenter exit   & 592 & 67.7\% & -- \\ \hline
-Residential exit  & 282 & 32.3\% & -- \\ \hline
-Blacklisted IP    & 496 & 56.8\% & -- \\ \hline
-Proxy-detected    & 445 & 50.9\% & -- \\ \hline
+Datacenter exit   & 973 & 67.1\% & -- \\ \hline
+Residential exit  & 478 & 32.9\% & -- \\ \hline
+Blacklisted IP    & 808 & 55.7\% & -- \\ \hline
+Proxy-detected    & 814 & 56.1\% & -- \\ \hline
 \end{tabular}
 \end{table}
 
 \subsection{Protocol Comparative Analysis}
 These results demonstrate that Hysteria2 is the most robust protocol to provide reachable proxy configurations.
-It has found about 35 reachable endpoints in a small dataset of 152 configurations, yielding a striking 23.0\% availability rate.
-Then VMess with 64 reachable from 3,478 has a very similar behavior with SS at 1.84\% and 0.84\%, respectively.
-At the end, VLESS has the most entries in the dataset but also the most fragile reachability in comparison to the other protocols.
+It has found 18 reachable endpoints in a dataset of 208 configurations, yielding an 8.65\% availability rate.
+SS follows with 166 reachable from 7,726 at 2.15\%, and VMess with 62 reachable from 4,103 at 1.51\%.
+At the end, VLESS has the most entries in the dataset but also the most fragile reachability in comparison to the other protocols at 1.12\%.
 
 In the geographic distribution of reachable configurations, the results are significantly different.
-Germany is the most represented exit country with 224 working configurations, with a large gap with respect to other countries.
-The second exit country was France with 84 reachable configurations and an acceptable result.
-The Netherlands, the United States, and Singapore follow with 77, 76, and 52 respectively.
+Germany is the most represented exit country with 274 working configurations, with a large gap with respect to other countries.
+The Netherlands follows with 190 reachable configurations, and the United States with 181.
+France and Singapore follow with 138 and 79 respectively.
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\columnwidth]{geo_distribution.png}
-    \caption{Top 20 exit countries for reachable configurations. Germany (224) and France (84) account for the largest share of working proxy exit nodes.}
+    \caption{Top 20 exit countries for reachable configurations. Germany (274) and The Netherlands (190) account for the largest share of working proxy exit nodes.}
     \label{fig:geo_distribution}
 \end{figure}
 
@@ -635,48 +635,48 @@ The Netherlands, the United States, and Singapore follow with 77, 76, and 52 res
 \hline
 \textbf{Rank} & \textbf{Country} & \textbf{Reachable Configs} \\
 \hline
-\textbf{1}  & Germany            & 224 \\
-\textbf{2}  & France             &  84 \\
-\textbf{3}  & The Netherlands    &  77 \\
-\textbf{4}  & United States      &  76 \\
-\textbf{5}  & Singapore          &  52 \\
-\textbf{6}  & Poland             &  40 \\
-\textbf{7}  & Finland            &  36 \\
-\textbf{8}  & Japan              &  36 \\
-\textbf{9}  & Italy              &  29 \\
-\textbf{10} & Sweden             &  23 \\
+\textbf{1}  & Germany            & 274 \\
+\textbf{2}  & The Netherlands    & 190 \\
+\textbf{3}  & United States      & 181 \\
+\textbf{4}  & France             & 138 \\
+\textbf{5}  & Singapore          &  79 \\
+\textbf{6}  & Japan              &  65 \\
+\textbf{7}  & Finland            &  58 \\
+\textbf{8}  & Italy              &  57 \\
+\textbf{9}  & Sweden             &  56 \\
+\textbf{10} & South Korea        &  50 \\
 \hline
 \end{tabular}
 \end{table}
 
 \subsection{Performance and Execution Stability}
 The performance of protocol testing tools is related to their time-complexity and crash-free working.
-The results of the experiment demonstrate the most unstable connectivity scenario arises from SSL handshake failures, which account for 16,018 records and indicate server-side certificate pinning or TLS version mismatches.
+The results of the experiment demonstrate the most unstable connectivity scenario arises from SSL handshake failures, which account for 29,220 records and indicate server-side certificate pinning or TLS version mismatches.
 On the other hand, the Hysteria2 protocol client has almost 100 percent stability to finish the connection process when the server is reachable.
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\columnwidth]{latency_distribution.png}
-    \caption{Latency distribution across all reachable configurations (left, capped at 5000\,ms; median 1472\,ms, mean 1955\,ms) and latency by protocol as a box-plot (right). Hysteria2 shows the lowest median latency.}
+    \caption{Latency distribution across all reachable configurations (left, capped at 5000\,ms; median 1848\,ms, mean 3023\,ms) and latency by protocol as a box-plot (right). Hysteria2 shows the lowest median latency.}
     \label{fig:latency_distribution}
 \end{figure}
 
 Furthermore, studying this information from crash-free aspects demonstrates which proxy protocols have the most harmony with their configuration format.
-The overall availability rate of 0.80\% across 109,874 configurations confirms that the free proxy ecosystem is characterized by severe configuration staleness, with the vast majority of published configurations pointing to offline or unreachable servers.
+The overall availability rate of 1.26\% across 115,042 configurations confirms that the free proxy ecosystem is characterized by severe configuration staleness, with the vast majority of published configurations pointing to offline or unreachable servers.
 
 Another aspect of performance is latency distribution.
 Due to different server locations of each configuration, they finish the proxy handshake within different durations.
-The results show VLESS and VMess take significantly more time to process with respect to Hysteria2, with a mean latency of 1,955 ms and a median latency of 1,472 ms across all working configurations.
+The results show VLESS and VMess take significantly more time to process with respect to Hysteria2, with a mean latency of 3,023 ms and a median latency of 1,848 ms across all working configurations.
 
 \subsection{Machine Learning Analysis}
 The performance of machine learning models on the proxy configuration dataset reveals important structural properties of the subscription ecosystem~\cite{deep_packet2020}.
-By applying Random Forest, Gradient Boosting, Logistic Regression, and a Multi-Layer Perceptron (MLP) to predict configuration availability from static metadata (protocol, port, and port class), the best achievable ROC-AUC score is approximately 0.74.
+By applying Random Forest, Gradient Boosting, Logistic Regression, and a Multi-Layer Perceptron (MLP) to predict configuration availability from static metadata (protocol, port, and port class), the best achievable ROC-AUC score is approximately 0.76.
 This demonstrates that static configuration metadata has limited but non-trivial predictive power for availability, and a significant portion of reachability depends on real-time server infrastructure conditions.
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.9\columnwidth]{ml_model_comparison.png}
-    \caption{Availability prediction model comparison by ROC-AUC. Gradient Boosting achieves the best score (0.783), followed by Random Forest (0.775), MLP (0.737), and Logistic Regression (0.689). All models outperform the random baseline (0.5).}
+    \caption{Availability prediction model comparison by ROC-AUC. Gradient Boosting achieves the best score (0.756), followed by Random Forest (0.755), MLP (0.711), and Logistic Regression (0.676). All models outperform the random baseline (0.5).}
     \label{fig:ml_comparison}
 \end{figure}
 
@@ -690,10 +690,10 @@ This demonstrates that static configuration metadata has limited but non-trivial
 \hline
 \textbf{Rank} & \textbf{Model} & \textbf{ROC-AUC} & \textbf{F1-macro} \\
 \hline
-\textbf{1} & Random Forest       & 0.742 & -- \\
-\textbf{2} & MLP (PyTorch)       & 0.738 & -- \\
-\textbf{3} & Gradient Boosting   & 0.734 & -- \\
-\textbf{4} & Logistic Regression & 0.620 & -- \\
+\textbf{1} & Gradient Boosting   & 0.756 & -- \\
+\textbf{2} & Random Forest       & 0.755 & -- \\
+\textbf{3} & MLP (PyTorch)       & 0.711 & -- \\
+\textbf{4} & Logistic Regression & 0.676 & -- \\
 \hline
 \end{tabular}%
 }
