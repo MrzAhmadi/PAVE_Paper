@@ -223,7 +223,7 @@ One of the most important steps in running a testing experiment is having an aut
 While testing proxy configurations is already possible, these methods are not feasible for large datasets.
 Therefore, a fully automated system capable of performing this procedure without supervision is required.
 Implementing this system requires defining an approach and lifecycle for each configuration test, so the system can observe every test phase, from configuration fetching and deduplication through to saving connectivity results.
-Multiple tests can run in parallel, but all experiments should be monitored by the resources observer to ensure we do not exceed the machine's resources.
+Multiple tests can run in parallel across a fixed number of containers, each independently processing its assigned configuration slice.
 Running multiple test experiments in parallel, using tracking and advanced logging, and allowing any experiment to be repeated with the exact same behavioral parameters are additional reasons why implementing this automated test system is vital.
 In this section, we will explain the system's orchestration and how we organize our tools to work together in a pipeline.
 This process automates the steps from receiving the input subscription dataset to generating CSV and JSON files containing connectivity and security data.
@@ -234,56 +234,49 @@ In general, we have several proxy configurations in our datasets, and we need to
 For this purpose, we have chosen to use containerization tools such as Docker.
 Meanwhile, running tests on the container helps us avoid concerns about multiple versions of the proxy client tools running and makes it suitable for migrating to another host system, which is particularly helpful for preventing conflicts, unwanted behavior, and errors.
 
-In this approach, we have two options for running experiments: either running all processes in a single container and managing multiple test workers within it, or using a base image with all configurations set up to run multiple containers, with the proxy clients running in each container.
-We have chosen the first approach because it involves less interaction with the container management layer, which is less problematic.
+In this approach, a fixed number of containers $N$ are launched in parallel on the host machine.
+The entire deduplicated configuration list is partitioned into $N$ equal slices, and each container is assigned one slice to process independently.
+Within each container, multiple test workers run concurrently to test the assigned configurations, combining parallelism at both the container and worker levels.
 
 \subsection{Environment Configuration}
 As we discussed, all testing will be done within a Docker container, and we can repeat this lifecycle for every configuration slice in the input dataset.
 But behind the scenes, we need an actor to manage running containers.
 Thanks to the available SDKs for Docker~\cite{docker}, the actor can be implemented as a script, providing sufficient flexibility.
-The script is not just responsible for running the containers, but also for finishing each container after it completes its job; furthermore, it monitors the remaining resources to ensure we do not run out by running many containers in parallel, and finally the script could be the transporter of needed parameters such as the number of shards, the shard index, the worker count, and the output directory inside each container.
+The script is responsible for running all containers, waiting for each to complete its assigned slice, and transporting the needed parameters to each container, such as the total number of shards, the shard index, the worker count, and the output directory.
 Managing container engines, such as Docker, is another mission of the script.
 
 The primary step in enabling automated container execution is creating a base Docker image.
 In this image, we provision an Ubuntu-based environment and install essential dependencies, such as the Xray core~\cite{xray_core}, Hysteria2 client~\cite{hysteria2_proto}, Sing-box~\cite{singbox}, and Python~\cite{python_org}.
 
 \begin{algorithm}[t]
-\caption{Actor Script Orchestration and Resource Management}
+\caption{Actor Script Orchestration and Parallel Container Execution}
 \label{alg:actor}
 \begin{algorithmic}[1]
-    \State \textbf{Initialize} logging and directory structures
-    \State \textbf{Define} resource thresholds $T_{RAM}, T_{CPU}$
+    \State \textbf{Initialize} logging and output directory structures
     \State \textbf{Build} experiment base image $I_{exp}$
-    \State \textbf{Fetch} all subscription URLs and deduplicate
-    \State \textbf{Split} deduplicated configs into $N$ shards
-    \For{each $Shard_i$ in $Shards$}
-        \While{true}
-            \State $R_{avail} \leftarrow$ \text{CheckAvailableResources()}
-            \If{$R_{avail}.RAM > T_{RAM}$ \textbf{and} $R_{avail}.CPU > T_{CPU}$}
-                \State \textbf{Run} container $C_i$ with shard parameters
-                \State \textbf{Mount} persistent volumes for configs and results
-                \State \textbf{Start} container log stream
-                \State \textbf{Wait} \textit{staggered\_boot\_delay}
-                \State \textbf{Break}
-            \Else
-                \State \textbf{Wait} \textit{resource\_retry\_delay}
-            \EndIf
-        \EndWhile
+    \State \textbf{Fetch} all subscription URLs and deduplicate $\rightarrow$ $M$ configs
+    \State \textbf{Set} $N \leftarrow$ number of containers (fixed)
+    \State $chunk \leftarrow \lceil M / N \rceil$
+    \For{each $i \in \{0, \ldots, N-1\}$ \textbf{in parallel}}
+        \State \textbf{Run} container $C_i$ with parameters $(\texttt{--shards}\ N,\ \texttt{--shard}\ i)$
+        \State \textbf{Mount} shared config file and $shard\_i$ output directory
+        \State \textbf{Stream} $C_i$ logs to $shard\_i.log$
     \EndFor
+    \State \textbf{Wait} for all $N$ containers to complete
+    \State \textbf{Merge} per-shard results into unified CSV/JSON
 \end{algorithmic}
 \end{algorithm}
 
-\subsection{Dynamic Resource Orchestration and Monitoring}
-One of the most important parts of the experiment that makes it significantly faster is the parallel execution of testing workers, which requires a good approach to manage worker instances to run in parallel, considering resources that, in this experiment, are focused on the processor and memory of the system.
-The script (Algorithm~\ref{alg:actor}) tries to set limits on memory usage and processes per container, which depend heavily on the number of concurrent workers and the protocol under test; supporting a large portion of configurations requires newer, more resource-intensive proxy clients, and newer clients require more resources.
-Furthermore, the script would be programmable with two parameters: a delay after running each container before running the next, and a delay before checking the available resources.
-Using this approach, the script considers available resources after a delay before running.
-If there are enough free resources for a container, it runs a new container; otherwise, it delays checking for a duration specified by the resource checker parameter.
-Finally, to ensure stability of the host machine, another parameter will be available to prevent the entire running experiment from occupying all resources.
+\subsection{Parallel Container Orchestration}
+One of the most important parts of the experiment that makes it significantly faster is the parallel execution of all containers simultaneously.
+The script (Algorithm~\ref{alg:actor}) launches a fixed number $N$ of containers in parallel, each receiving a disjoint slice of the deduplicated configuration list.
+Given $M$ total configurations and $N$ containers, each container receives $\lceil M/N \rceil$ configurations (the last container may receive fewer).
+Within each container, $W$ concurrent test workers process the assigned slice, so the total concurrency across the experiment is $N \times W$.
+The number of containers $N$ and workers per container $W$ are both configurable parameters, allowing the operator to tune parallelism to the available host resources.
 
 \subsection{Intra-Container Lifecycle}
-After containerizing the testing environment, the automated system, which is a script (Algorithm~\ref{alg:container}), tries to run a container for each configuration shard.
-Within the container, the system should first verify the shard index and configuration count to prevent future problems if the parameters passed as arguments are incorrect.
+Each container runs the same testing script (Algorithm~\ref{alg:container}), but processes only its own slice of the configuration list determined by the shard index and total shard count passed as arguments.
+Within the container, the system verifies the shard parameters and computes the exact slice boundaries before beginning any tests.
 In this experiment, the system is also implemented to support multiple proxy client binaries in situations where different protocols require different runtime environments.
 
 \subsubsection{Proxy Client Setup and Configuration}
@@ -305,10 +298,11 @@ Another parameter is set to a directory containing the connectivity and security
 \caption{Containerized Environment Lifecycle}
 \label{alg:container}
 \begin{algorithmic}[1]
-    \State \textbf{Load} shard parameters from environment variables
+    \State \textbf{Load} shard parameters (--shard $i$, --shards $N$) from CLI arguments
     \State \textbf{Parse} each raw config URI into a \textit{ProxyConfig}
     \State \textbf{Deduplicate} configs at credential level
-    \For{each $Config$ in $Shard$}
+    \State \textbf{Slice} configs: $start \leftarrow i \cdot \lceil M/N \rceil$,\ $end \leftarrow \min(start + \lceil M/N \rceil,\ M)$
+    \For{each $Config$ in $configs[start:end]$}
         \State \textbf{Select} appropriate proxy client via \textit{create\_tester()}
         \State \textbf{Launch} proxy client subprocess on local SOCKS5 port
         \State \textbf{Execute} \texttt{curl} through local port to get $exit\_ip$ and $latency\_ms$
@@ -525,7 +519,7 @@ The results are analyzed using various comparative tools, specifically Pandas~\c
 \subsection{Discovered Reachable Configurations}
 The result of running the connectivity testing system on the collected subscription dataset produced \textbf{115,042} unique deduplicated configuration records, of which \textbf{1,451} were reachable at the end.
 After the downloaded configuration list occupied about \textbf{5 MB} on the host machine storage, a \textbf{30-second} test by PAVE was run on all target configurations to determine which configurations are reachable by PAVE, and \textbf{1,451} were confirmed at the end.
-By running \textbf{50} concurrent workers on the host machine simultaneously, the entire process took several hours to complete.
+We ran our experiment with \textbf{20} parallel containers, each processing an equal slice of the configuration dataset with \textbf{50} concurrent workers.
 
 \begin{figure}[htbp]
     \centering
@@ -737,6 +731,8 @@ In this project, the PAVE is primarily focused on dynamic analysis of proxy conn
 At the end of the PAVE results, it is observable that there are some configurations that PAVE is not able to establish any proxy connectivity for, and it cannot cross their security barriers.
 For future work, it would be interesting to explore the integration of the PAVE with static analysis tools to break the security barriers of configurations, and especially TLS certificate pinning bypass.
 However, it is important to consider the ethical implications of such an approach, and to ensure that it is used in a responsible and legal manner.
+
+\newpage
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
