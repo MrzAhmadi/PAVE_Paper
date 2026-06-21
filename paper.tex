@@ -132,6 +132,7 @@ The main contributions are the following.
     \item[Scalable Architecture] Implementation of a scalable system architecture that leverages configurable parallel container execution to reduce the overall testing time significantly.
     \item[Data Deduplication] Development of a multi-stage noise reduction mechanism that strictly filters duplicate and expired configurations, transforming raw subscription data into actionable information.
     \item[Repeatability] Engineering a deterministic system infrastructure that guarantees the repeatability of the experiments at every stage of the pipeline.
+    Distribution of PAVE as an installable Python package, enabling any researcher to reproduce the entire evaluation pipeline with a single command.
     \item[Standardized Data Enrichment] Introduction of a systematic approach to convert the tested results into standard formats (i.e., CSV/JSON) with geo-IP enrichment to match the exact structure of the analysis datasets.
     \item[Evaluation and Benchmarking] Establishment of a robust evaluation framework to compare the reachability results against the protocol specifications, alongside a comprehensive stability comparison of the related protocol clients and analysis tools.
     \item[Result Categories] Defining multiple configuration classes---unreachable, datacenter-hosted, and residentially-routed proxies---with security profiles covering DNS leak, IPv6 leak, and HTTP header leak detection.
@@ -248,6 +249,10 @@ Managing container engines, such as Docker, is another mission of the script.
 The primary step in enabling automated container execution is creating a base Docker image.
 In this image, we provision a Debian-based environment and install essential dependencies, such as the Xray core~\cite{xray_core}, Hysteria2 client~\cite{hysteria2_proto}, Sing-box~\cite{singbox}, and Python~\cite{python_org}.
 
+Thanks to the package distribution, the entire pipeline can be invoked as a single \texttt{pave run} command, providing sufficient portability across different host environments.
+This command automates the steps from receiving the input subscription file to generating connectivity results and merging them into a unified dataset.
+Running the entire pipeline with a single command, inspecting connectivity results through a built-in web dashboard, and verifying the runtime environment through a dedicated version command are additional reasons why distributing PAVE as an installable Python package is vital.
+
 \begin{algorithm}[t]
 \caption{Actor Script Orchestration and Parallel Container Execution}
 \label{alg:actor}
@@ -293,6 +298,7 @@ Furthermore, the embedded script in the container is configured to capture the p
 \subsubsection{Security Checks and Result Generation}
 A dedicated test session is responsible for running DNS leak checks, IPv6 leak detection~\cite{vpn_survey2023}, proxy detection queries, and HTTP header leak detection (probing for \texttt{X-Forwarded-For} exposure) through each live proxy port.
 Another parameter is set to a directory containing the connectivity and security results in CSV and JSON format.
+A dedicated \texttt{pave serve} command is responsible for serving the generated connectivity results through a local web dashboard accessible in the host browser.
 
 \begin{algorithm}[t]
 \caption{Containerized Environment Lifecycle}
