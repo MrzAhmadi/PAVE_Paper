@@ -86,7 +86,7 @@ In this context, formal machine-readable subscription feeds establish an explici
 When discrepancies, omissions, or complete absences occur within these subscription feeds, the reliability of downstream circumvention activities, including automated black-box validation, reachability testing, and third-party integration, degrades sharply.
 Despite the recognized utility of keeping configurations synchronized, a persistent misalignment remains between published and operational endpoints, frequently leading to a phenomenon known as configuration staleness~\cite{shadowsocks_gfw,gfw_encrypted}.
 
-To address missing or unreachable configurations, researchers employ automated connectivity testing, a technique that probes structural proxy definitions from runtime network behavior.
+Researchers address missing or unreachable configurations using automated connectivity testing, which probes structural proxy definitions from runtime network behavior.
 While various specialized client tools exist to test proxy configurations from subscription feeds, existing literature lacks systematic empirical data regarding how effectively these black-box testing mechanisms scale when subjected to realistic, unconstrained public subscription data.
 Their absolute and comparative reachability remains unaddressed when deployed across a wide distribution of protocols.
 
@@ -99,9 +99,9 @@ Prior studies demonstrate that evaluating individual proxy protocols or small co
 By exposing automated configuration testing pipelines to wide-reaching subscription datasets, this empirical study addresses three core motivations.
 \begin{sloppypar}
 \begin{LaTeXdescription}
-    \item[Quantifying Configuration Scarcity] Systematically identifying unreachable endpoints and structural mutations to illuminate the real-world severity of proxy and configuration staleness in the wild.
-    \item[Benchmarking State-of-the-Art Protocols] Evaluating reachability rates, latency characteristics, and exit-node security profiles of distinct proxy protocols (VLESS~\cite{xray_core}, VMess~\cite{v2ray}, Shadowsocks~\cite{shadowsocks}, Trojan~\cite{trojan_gfw}, and Hysteria2~\cite{hysteria2_proto}) across identical, large-scale subscription records.
-    \item[Identifying Infrastructure Bottlenecks] Measuring how runtime constraints, security controls (e.g., SSL handshake failures), and automated connectivity parameterization impact automated black-box parallel workflows at scale.
+    \item[Configuration Scarcity] Systematically identifying unreachable endpoints and structural mutations to illuminate the real-world severity of proxy and configuration staleness in the wild.
+    \item[Benchmarking] Evaluating reachability rates, latency characteristics, and exit-node security profiles of distinct proxy protocols (VLESS~\cite{xray_core}, VMess~\cite{v2ray}, Shadowsocks~\cite{shadowsocks}, Trojan~\cite{trojan_gfw}, and Hysteria2~\cite{hysteria2_proto}) across identical, large-scale subscription records.
+    \item[Bottlenecks] Quantifying how runtime constraints, security controls (e.g., SSL handshake failures), and connectivity parameterization affect automated black-box proxy testing workflows at scale.
 \end{LaTeXdescription}
 \end{sloppypar}
 
@@ -130,11 +130,11 @@ The main contributions are the following.
 \begin{LaTeXdescription}
     \item[Automated Experimental Pipeline] Design and development of a fully automated configuration testing pipeline capable of processing large datasets of proxy configurations without manual intervention.
     \item[Scalable Architecture] Implementation of a scalable system architecture that leverages configurable parallel container execution to reduce the overall testing time significantly.
-    \item[Advanced Data Deduplication] Development of a multi-stage noise reduction mechanism that strictly filters duplicate and expired configurations, transforming raw subscription data into actionable information.
-    \item[Experimental Repeatability] Engineering a deterministic system infrastructure that guarantees the repeatability of the experiments at every stage of the pipeline.
+    \item[Data Deduplication] Development of a multi-stage noise reduction mechanism that strictly filters duplicate and expired configurations, transforming raw subscription data into actionable information.
+    \item[Repeatability] Engineering a deterministic system infrastructure that guarantees the repeatability of the experiments at every stage of the pipeline.
     \item[Standardized Data Enrichment] Introduction of a systematic approach to convert the tested results into standard formats (i.e., CSV/JSON) with geo-IP enrichment to match the exact structure of the analysis datasets.
     \item[Evaluation and Benchmarking] Establishment of a robust evaluation framework to compare the reachability results against the protocol specifications, alongside a comprehensive stability comparison of the related protocol clients and analysis tools.
-    \item[Distinguishing Results] Introducing multiple categories of configurations, such as unreachable, datacenter-hosted, and residentially-routed proxies, with security profiles including DNS leak, IPv6 leak, and HTTP header leak detection.
+    \item[Result Categories] Defining multiple configuration classes---unreachable, datacenter-hosted, and residentially-routed proxies---with security profiles covering DNS leak, IPv6 leak, and HTTP header leak detection.
 \end{LaTeXdescription}
 \end{sloppypar}
 
@@ -258,7 +258,7 @@ In this image, we provision a Debian-based environment and install essential dep
     \State \textbf{Set} $N \leftarrow$ number of containers (fixed)
     \State $chunk \leftarrow \lceil M / N \rceil$
     \For{each $i \in \{0, \ldots, N-1\}$ \textbf{in parallel}}
-        \State \textbf{Run} container $C_i$ with parameters $(\texttt{--shards}\ N,\ \texttt{--shard}\ i)$
+        \State \textbf{Run} $C_i$ with \texttt{--shards}~$N$ and \texttt{--shard}~$i$
         \State \textbf{Mount} shared config file and $shard\_i$ output directory
         \State \textbf{Stream} $C_i$ logs to $shard\_i.log$
     \EndFor
@@ -329,8 +329,8 @@ Looking at raw subscription data, it is clear that there are different types of 
 Discovered noises are as follows:
 
 \subsubsection{Exact String Duplicates}
-These configurations are present in multiple subscription feeds and are visible in every experiment and captured dataset.
-Multiple channels distribute the same configuration, and even when some servers are not reachable, these kinds of duplicates are present in the captured data.
+Such configurations appear across multiple subscription feeds and remain present in every experiment and captured dataset.
+Multiple channels distribute the same configuration, and even when some servers are not reachable, these duplicates persist throughout the captured data.
 
 \subsubsection{Credential-Level Duplicates}
 Some functionally identical configurations appear with different display names or minor encoding variations.
@@ -409,7 +409,7 @@ Xray~\cite{xray_core} is a tool developed in Go~\cite{golang}.
 Although this tool is based on Go, it supports a robust command-line interface (CLI) integration and is highly practical for use with PAVE, which is developed in Python.
 This tool supports automated path parameterization for VLESS and VMess protocols, which is one of the most critical features for configuration testing.
 It allows the tool to dynamically parse configuration URIs to detect transport parameters (like WebSocket~\cite{rfc6455} or gRPC~\cite{grpc} paths and UUIDs) and instantiate them into a running proxy process.
-For instance, converting \texttt{vless://uuid@server:443?type=ws\&path=/api} into a running Xray process with the correct WebSocket transport.
+For instance, a URI with \texttt{type=ws\&path=/api} parameters is converted into a running Xray process with the correct WebSocket transport configuration.
 This prevents the generation of thousands of failed connection attempts in the final evaluation.
 This tool also supports TLS certificate pinning bypass, built-in timeout controls, and native noise reduction by rejecting malformed configurations before attempting a connection.
 
@@ -492,10 +492,10 @@ Some public Telegram channels publish their official proxy configurations corres
 The most comprehensive unofficial source is Telegram-based subscription aggregators.
 These services contain official and unofficial proxy configurations that are available to the public.
 These aggregators offer practical features for investigating configurations, and the raw configuration feeds are available on their public Telegram channels, which are used in this project.
-\texttt{barry-far/V2ray-config}~\cite{barry_far_v2ray} is a comprehensive repository of proxy configurations collected from various public subscription channels, including protocol-separated feeds and combined subscription lists, maintained by a community contributor.
-Within this project, this repository is used as a primary source for sourcing proxy configuration URIs across VLESS, VMess, Trojan, Shadowsocks, and ShadowsocksR~\cite{shadowsocksr} protocols.
-\texttt{ebrasha/free-v2ray-public-list}~\cite{ebrasha_v2ray} is a comprehensive repository of free proxy configurations collected from various sources and maintained by EbraSha.
-Within this project, this repository is used as a supplementary source for sourcing additional multi-protocol proxy configuration URIs corresponding to the candidate subscription feeds.
+The \texttt{barry-far/V2ray-config}~\cite{barry_far_v2ray} repository is a comprehensive collection of proxy configurations from various public subscription channels, including protocol-separated feeds and combined subscription lists maintained by a community contributor.
+This project uses it as the primary source for proxy configuration URIs across VLESS, VMess, Trojan, Shadowsocks, and ShadowsocksR~\cite{shadowsocksr} protocols.
+The \texttt{ebrasha/free-v2ray-public-list}~\cite{ebrasha_v2ray} repository provides a broad set of free proxy configurations collected from multiple sources and maintained by EbraSha.
+This project uses it as a supplementary source for additional multi-protocol proxy configuration URIs corresponding to the candidate subscription feeds.
 
 The most critical part of configuration selection is related to choosing reachable and up-to-date proxy endpoints.
 Fundamentally, within open-source subscription repositories, there is no possibility to filter only configurations that are currently reachable.
